@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Eye, EyeOff, Lock, Mail, Shield } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ActionButton, BrutalCard, MonoLabel } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/toast";
@@ -69,11 +69,16 @@ export function AdminLoginView() {
 
         <BrutalCard className="shadow-brutal-6 p-6 sm:p-8">
           <div className="flex items-center gap-3 border-b-2 border-slate-900 pb-4">
-            <div className="shadow-brutal-2 flex h-10 w-10 items-center justify-center border-2 border-slate-900 bg-slate-900 text-white">
-              <Shield className="h-5 w-5" />
+            <div className="shadow-brutal-2 flex h-11 w-11 shrink-0 items-center justify-center border-2 border-slate-900 bg-white p-0.5">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/psgitech-crest.png"
+                alt="PSG iTech Crest"
+                className="h-full w-full object-contain"
+              />
             </div>
             <div>
-              <MonoLabel>RESTRICTED GOVERNANCE PORTAL</MonoLabel>
+              <MonoLabel>PSG ITECH // RESTRICTED ADMIN PORTAL</MonoLabel>
               <h1 className="font-display text-xl font-black tracking-tight text-slate-950 uppercase">
                 Administrator Sign In
               </h1>

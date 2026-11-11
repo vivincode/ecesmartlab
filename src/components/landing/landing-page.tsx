@@ -143,14 +143,22 @@ export function LandingPage({ stats }: { stats: LandingStats }) {
       <header className="sticky top-0 z-40 border-b-2 border-slate-900 bg-white/95 backdrop-blur-sm">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-3">
-            <div className="shadow-brutal-2 flex h-9 w-9 items-center justify-center border-2 border-slate-900 bg-slate-900 font-mono text-sm font-black text-white">
-              SL
+            <div className="shadow-brutal-2 flex h-10 w-10 shrink-0 items-center justify-center border-2 border-slate-900 bg-white p-0.5">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/psgitech-crest.png"
+                alt="PSG iTech Crest"
+                className="h-full w-full object-contain"
+              />
             </div>
             <div>
               <span className="font-display block text-sm font-bold tracking-tight text-slate-950 uppercase">
-                SmartLab
+                PSG iTech <span className="text-sky-700">//</span> SmartLab
               </span>
-              <span className="block font-mono text-[9px] font-black tracking-widest text-sky-700 uppercase">
+              <span className="hidden font-mono text-[9px] font-black tracking-widest text-slate-700 uppercase sm:block">
+                PSG Institute of Technology and Applied Research
+              </span>
+              <span className="block font-mono text-[9px] font-black tracking-widest text-sky-700 uppercase sm:hidden">
                 COMPONENT LENDING PLATFORM
               </span>
             </div>
@@ -212,10 +220,19 @@ export function LandingPage({ stats }: { stats: LandingStats }) {
             transition={{ duration: 0.38 }}
             className="lg:col-span-7"
           >
+            <div className="mb-4 inline-block border-2 border-slate-900 bg-white px-3 py-2 shadow-brutal-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/psgitech-logo.webp"
+                alt="PSG Institute of Technology and Applied Research"
+                className="h-10 w-auto object-contain sm:h-12"
+              />
+            </div>
+
             <div className="mb-5 inline-flex items-center gap-2 border-2 border-slate-900 bg-white px-3 py-1 shadow-brutal-2">
               <span className="h-2 w-2 rounded-full bg-emerald-500" />
               <MonoLabel className="text-slate-900">
-                INSTITUTIONAL HARDWARE &amp; LAB OPERATIONS // V1.0
+                PSG INSTITUTE OF TECHNOLOGY AND APPLIED RESEARCH // SMARTLAB
               </MonoLabel>
             </div>
 
@@ -585,9 +602,14 @@ export function LandingPage({ stats }: { stats: LandingStats }) {
       <footer className="border-t-3 border-slate-900 bg-white px-4 py-8 sm:px-6">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 sm:flex-row">
           <div className="flex items-center gap-3">
-            <CalendarClock className="h-4 w-4 text-sky-700" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/psgitech-crest.png"
+              alt="PSG iTech Crest"
+              className="h-7 w-7 border border-slate-900 bg-white object-contain p-0.5"
+            />
             <span className="font-mono text-xs font-bold text-slate-700 uppercase">
-              SMARTLAB // INSTITUTIONAL COMPONENT LENDING &amp; LAB MANAGEMENT
+              PSG ITECH SMARTLAB // PSG INSTITUTE OF TECHNOLOGY AND APPLIED RESEARCH
             </span>
           </div>
           <div className="flex flex-wrap items-center gap-4 font-mono text-xs font-bold uppercase">

@@ -95,11 +95,21 @@ export default function RegisterPage() {
         </div>
 
         <BrutalCard className="shadow-brutal-6 p-6 sm:p-8">
-          <div className="border-b-2 border-slate-900 pb-4">
-            <MonoLabel>ACCOUNT PROVISIONING</MonoLabel>
-            <h1 className="font-display mt-1 text-2xl font-black tracking-tight text-slate-950 uppercase">
-              Register for Lab Access
-            </h1>
+          <div className="flex items-center gap-3 border-b-2 border-slate-900 pb-4">
+            <div className="shadow-brutal-2 flex h-11 w-11 shrink-0 items-center justify-center border-2 border-slate-900 bg-white p-0.5">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/psgitech-crest.png"
+                alt="PSG iTech Crest"
+                className="h-full w-full object-contain"
+              />
+            </div>
+            <div>
+              <MonoLabel>PSG INSTITUTE OF TECHNOLOGY AND APPLIED RESEARCH</MonoLabel>
+              <h1 className="font-display mt-0.5 text-2xl font-black tracking-tight text-slate-950 uppercase">
+                Register for SmartLab
+              </h1>
+            </div>
           </div>
 
           {configured === false && (
