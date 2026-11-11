@@ -25,10 +25,20 @@ describe("Zod Security & Input Validation Schemas", () => {
       email: "priya@college.edu",
       academicId: "ECE23014",
       password: "password123",
-      confirmPassword: "password123",
-      role: "student",
     });
     expect(ok.success).toBe(true);
+    if (ok.success) {
+      expect(ok.data.role).toBe("student");
+    }
+
+    const mismatch = registerSchema.safeParse({
+      fullName: "Priya Sharma",
+      email: "priya@college.edu",
+      academicId: "ECE23014",
+      password: "password123",
+      confirmPassword: "differentPassword",
+    });
+    expect(mismatch.success).toBe(false);
   });
 
   it("prevents available quantity exceeding total quantity in component schema", () => {

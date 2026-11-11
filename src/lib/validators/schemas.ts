@@ -7,16 +7,16 @@ export const registerSchema = z
     academicId: z
       .string()
       .trim()
-      .min(3, "Academic / Staff ID is required")
+      .min(3, "Register number is required")
       .max(32)
-      .regex(/^[A-Za-z0-9_-]+$/, "ID may only contain letters, numbers, hyphens, or underscores"),
+      .regex(/^[A-Za-z0-9_-]+$/, "Register number may only contain letters, numbers, hyphens, or underscores"),
     password: z.string().min(8, "Password must be at least 8 characters").max(128),
-    confirmPassword: z.string(),
-    role: z.enum(["student", "staff"]),
+    confirmPassword: z.string().optional(),
+    role: z.enum(["student", "staff"]).default("student"),
     staffInviteCode: z.string().optional(),
     departmentId: z.string().uuid().optional().or(z.literal("")),
   })
-  .refine((data) => data.password === data.confirmPassword, {
+  .refine((data) => data.confirmPassword === undefined || data.password === data.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
   });
