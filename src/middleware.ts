@@ -13,7 +13,6 @@ const PROTECTED_PREFIXES = [
   "/notifications",
   "/profile",
   "/staff",
-  "/admin",
 ];
 
 export async function middleware(request: NextRequest) {
