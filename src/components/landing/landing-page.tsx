@@ -38,6 +38,7 @@ interface LandingStats {
     condition: string;
     status: string;
     storage_location: string;
+    image_urls?: string[];
     laboratories?: { name: string; code: string } | null;
     categories?: { name: string } | null;
   }>;
@@ -419,7 +420,17 @@ export function LandingPage({ stats }: { stats: LandingStats }) {
                     <MonoLabel>{c.sku}</MonoLabel>
                     <StatusBadge status={c.status} />
                   </div>
-                  <h3 className="mt-2 text-base font-black text-slate-950">{c.name}</h3>
+                  {c.image_urls && c.image_urls[0] && (
+                    <div className="mt-3 overflow-hidden border-2 border-slate-900 bg-slate-50">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={c.image_urls[0]}
+                        alt={c.name}
+                        className="h-36 w-full object-contain p-1.5"
+                      />
+                    </div>
+                  )}
+                  <h3 className="mt-2.5 text-base font-black text-slate-950">{c.name}</h3>
                   <p className="mt-1 font-mono text-[11px] font-bold text-slate-500">
                     {c.laboratories?.name ?? "Laboratory"} · {c.storage_location}
                   </p>

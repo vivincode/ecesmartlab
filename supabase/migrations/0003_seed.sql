@@ -66,7 +66,7 @@ INSERT INTO components (
   id, department_id, laboratory_id, category_id, name, sku, description, usage_instructions,
   manufacturer, model, storage_location, specifications, is_serialized,
   total_quantity, available_quantity, reserved_quantity, borrowed_quantity, min_stock_threshold,
-  condition, status, replacement_value
+  condition, status, replacement_value, image_urls
 ) VALUES
   (
     '55555555-5555-5555-5555-555555555501',
@@ -76,7 +76,8 @@ INSERT INTO components (
     'Verify resistance with multimeter before soldering. Return sorted tray compartments.',
     'Yageo', 'MFR-25FBF52', 'Rack A / Bin 04',
     '{"tolerance":"±1%","power_rating":"0.25W","values":"30 values x 20 pcs"}'::jsonb,
-    FALSE, 30, 30, 0, 0, 5, 'Good', 'Available', 12.50
+    FALSE, 30, 30, 0, 0, 5, 'Good', 'Available', 12.50,
+    ARRAY['/images/components/resistor-assortment-kit.jpg']
   ),
   (
     '55555555-5555-5555-5555-555555555502',
@@ -86,7 +87,8 @@ INSERT INTO components (
     'Do not insert wires thicker than 22 AWG to prevent spring clip deformation.',
     'BusBoard', 'BB830', 'Rack A / Bin 09',
     '{"tie_points":830,"wire_gauge":"22-29 AWG","voltage_max":"300V"}'::jsonb,
-    FALSE, 25, 25, 0, 0, 4, 'Good', 'Available', 8.00
+    FALSE, 25, 25, 0, 0, 4, 'Good', 'Available', 8.00,
+    ARRAY['/images/components/breadboard-830.jpg']
   ),
   (
     '55555555-5555-5555-5555-555555555503',
@@ -96,7 +98,8 @@ INSERT INTO components (
     'Use regulated 5V USB or 7-12V barrel jack. Never short 5V pin to GND.',
     'Arduino', 'A000066', 'Cabinet B / Drawer 01',
     '{"mcu":"ATmega328P","clock":"16 MHz","operating_voltage":"5V","digital_io":14}'::jsonb,
-    FALSE, 20, 20, 0, 0, 4, 'Good', 'Available', 28.00
+    FALSE, 20, 20, 0, 0, 4, 'Good', 'Available', 28.00,
+    ARRAY['/images/components/arduino-uno-r3.jpg']
   ),
   (
     '55555555-5555-5555-5555-555555555504',
@@ -106,7 +109,8 @@ INSERT INTO components (
     'Inspect test probes before use. Switch to current range only when measuring in series.',
     'Fluke', '115', 'Cabinet C / Slot 01-12',
     '{"counts":6000,"safety_rating":"CAT III 600V","accuracy_dc":"0.5%"}'::jsonb,
-    TRUE, 12, 12, 0, 0, 2, 'Good', 'Available', 210.00
+    TRUE, 12, 12, 0, 0, 2, 'Good', 'Available', 210.00,
+    ARRAY['/images/components/fluke-115-dmm.jpg']
   ),
   (
     '55555555-5555-5555-5555-555555555505',
@@ -116,7 +120,8 @@ INSERT INTO components (
     '3.3V logic only. Use level shifters when interfacing with 5V peripherals.',
     'Espressif', 'ESP32-S3-DevKitC-1', 'Rack E / Tray 02',
     '{"cpu":"Xtensa LX7 240MHz","connectivity":"Wi-Fi + BLE 5","logic_level":"3.3V"}'::jsonb,
-    FALSE, 18, 18, 0, 0, 4, 'New', 'Available', 16.00
+    FALSE, 18, 18, 0, 0, 4, 'New', 'Available', 16.00,
+    ARRAY['/images/components/esp32-s3-devkitc.jpg']
   ),
   (
     '55555555-5555-5555-5555-555555555506',
@@ -126,7 +131,8 @@ INSERT INTO components (
     'Always shut down cleanly via OS before cutting power to protect microSD storage.',
     'Raspberry Pi', 'SC1112', 'Secure Vault / Bay 03',
     '{"ram":"8GB LPDDR4X","soc":"BCM2712","pcie":"PCIe 2.0 x1"}'::jsonb,
-    TRUE, 8, 8, 0, 0, 2, 'Good', 'Available', 95.00
+    TRUE, 8, 8, 0, 0, 2, 'Good', 'Available', 95.00,
+    ARRAY['/images/components/raspberry-pi-5-kit.jpg']
   ),
   (
     '55555555-5555-5555-5555-555555555507',
@@ -136,7 +142,8 @@ INSERT INTO components (
     'Connect ground clip first before attaching probe hooks to target PCB.',
     'Saleae', 'Logic Pro 8', 'Cabinet D / Drawer 02',
     '{"channels":8,"max_sample_rate":"500 MS/s","protocols":"SPI/I2C/UART/CAN"}'::jsonb,
-    TRUE, 6, 6, 0, 0, 1, 'Good', 'Available', 499.00
+    TRUE, 6, 6, 0, 0, 1, 'Good', 'Available', 499.00,
+    ARRAY['/images/components/saleae-logic-pro-8.jpg']
   ),
   (
     '55555555-5555-5555-5555-555555555508',
@@ -146,7 +153,8 @@ INSERT INTO components (
     'Verify probe attenuation (1X/10X) matches channel configuration. Ground clip is earth-referenced.',
     'Rigol', 'DS1054Z', 'Bench Bay 01-06',
     '{"channels":4,"bandwidth":"50 MHz","sample_rate":"1 GSa/s"}'::jsonb,
-    TRUE, 6, 6, 0, 0, 1, 'Good', 'Available', 420.00
+    TRUE, 6, 6, 0, 0, 1, 'Good', 'Available', 420.00,
+    ARRAY['/images/components/rigol-ds1054z.jpg']
   ),
   (
     '55555555-5555-5555-5555-555555555509',
@@ -156,7 +164,8 @@ INSERT INTO components (
     'Tin tip before powering off. Set temperature to 350°C for lead-free SAC305 solder.',
     'Hakko', 'FX888D-23BY', 'Rework Bench 01-08',
     '{"power":"70W","temp_range":"50-480 °C","esd_safe":true}'::jsonb,
-    TRUE, 8, 8, 0, 0, 2, 'Good', 'Available', 135.00
+    TRUE, 8, 8, 0, 0, 2, 'Good', 'Available', 135.00,
+    ARRAY['/images/components/hakko-fx888d.jpg']
   ),
   (
     '55555555-5555-5555-5555-555555555510',
@@ -166,7 +175,8 @@ INSERT INTO components (
     'Do not obstruct rotating turret during spin-up. Operate via ROS 2 rplidar_ros driver.',
     'SLAMTEC', 'A1M8-R6', 'Robotics Vault / Shelf 02',
     '{"range":"0.15-12 m","scan_rate":"5.5 Hz","sample_freq":"8000 Hz"}'::jsonb,
-    TRUE, 5, 5, 0, 0, 1, 'Good', 'Available', 120.00
+    TRUE, 5, 5, 0, 0, 1, 'Good', 'Available', 120.00,
+    ARRAY['/images/components/rplidar-a1m8.jpg']
   ),
   (
     '55555555-5555-5555-5555-555555555511',
@@ -176,7 +186,8 @@ INSERT INTO components (
     'Power from dedicated 6V BEC/regulator rather than microcontroller 5V rail.',
     'TowerPro', 'MG996R', 'Actuator Bin 03',
     '{"stall_torque":"11 kg-cm @ 6V","voltage":"4.8-7.2V","rotation":"180 deg"}'::jsonb,
-    FALSE, 24, 24, 0, 0, 4, 'Good', 'Available', 9.50
+    FALSE, 24, 24, 0, 0, 4, 'Good', 'Available', 9.50,
+    ARRAY['/images/components/mg996r-servo.jpg']
   ),
   (
     '55555555-5555-5555-5555-555555555512',
@@ -186,7 +197,8 @@ INSERT INTO components (
     'I2C address 0x28 default. Calibrate magnetometer away from ferrous benches.',
     'Adafruit / Bosch', 'BNO055', 'Sensor Tray 05',
     '{"interface":"I2C / UART","dof":9,"voltage":"3.3V-5V"}'::jsonb,
-    FALSE, 14, 14, 0, 0, 3, 'New', 'Available', 34.00
+    FALSE, 14, 14, 0, 0, 3, 'New', 'Available', 34.00,
+    ARRAY['/images/components/bno055-imu.jpg']
   )
 ON CONFLICT (sku) DO NOTHING;
 

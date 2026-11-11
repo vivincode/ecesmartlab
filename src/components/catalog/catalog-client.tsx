@@ -540,7 +540,21 @@ export function CatalogClient({
                     <StatusBadge status={c.status} />
                   </div>
 
-                  <Link href={`/catalog/${c.id}`} className="group mt-2 block">
+                  {c.image_urls && c.image_urls[0] && (
+                    <Link
+                      href={`/catalog/${c.id}`}
+                      className="mt-2.5 block overflow-hidden border-2 border-slate-900 bg-slate-50"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={c.image_urls[0]}
+                        alt={c.name}
+                        className="h-36 w-full object-contain p-1.5 transition-transform duration-200 hover:scale-105"
+                      />
+                    </Link>
+                  )}
+
+                  <Link href={`/catalog/${c.id}`} className="group mt-2.5 block">
                     <h3 className="text-base font-black text-slate-950 group-hover:text-sky-700">
                       {c.name}
                     </h3>
@@ -637,13 +651,30 @@ export function CatalogClient({
               {paged.map((c) => (
                 <tr key={c.id} className="hover:bg-slate-50">
                   <td className="px-4 py-3">
-                    <Link
-                      href={`/catalog/${c.id}`}
-                      className="font-black text-slate-950 hover:text-sky-700"
-                    >
-                      {c.name}
-                    </Link>
-                    <div className="font-mono text-[10px] font-bold text-sky-700">{c.sku}</div>
+                    <div className="flex items-center gap-3">
+                      {c.image_urls && c.image_urls[0] && (
+                        <Link
+                          href={`/catalog/${c.id}`}
+                          className="block h-10 w-10 shrink-0 overflow-hidden border border-slate-900 bg-slate-50"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={c.image_urls[0]}
+                            alt={c.name}
+                            className="h-full w-full object-contain p-0.5"
+                          />
+                        </Link>
+                      )}
+                      <div>
+                        <Link
+                          href={`/catalog/${c.id}`}
+                          className="font-black text-slate-950 hover:text-sky-700"
+                        >
+                          {c.name}
+                        </Link>
+                        <div className="font-mono text-[10px] font-bold text-sky-700">{c.sku}</div>
+                      </div>
+                    </div>
                   </td>
                   <td className="px-4 py-3 font-mono text-[11px]">
                     <div>{c.laboratories?.code}</div>

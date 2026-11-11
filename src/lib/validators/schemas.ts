@@ -59,7 +59,18 @@ export const componentBaseSchema = z.object({
   model: z.string().trim().max(100).optional().default(""),
   storage_location: z.string().trim().min(1).max(100).default("Main Shelf"),
   specifications: z.record(z.union([z.string(), z.number(), z.boolean()])).optional().default({}),
-  image_urls: z.array(z.string().url()).optional().default([]),
+  image_urls: z
+    .array(
+      z
+        .string()
+        .trim()
+        .refine(
+          (val) => val.startsWith("/") || /^https?:\/\//i.test(val),
+          "Image URL must be a valid URL or / path"
+        )
+    )
+    .optional()
+    .default([]),
   datasheet_url: z.string().url().optional().nullable().or(z.literal("")),
   is_serialized: z.boolean().default(false),
   total_quantity: z.coerce.number().int().min(0),

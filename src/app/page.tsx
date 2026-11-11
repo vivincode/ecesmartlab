@@ -26,7 +26,7 @@ export default async function HomePage() {
       supabase
         .from("components")
         .select(
-          "id, name, sku, available_quantity, total_quantity, condition, status, storage_location, laboratories(name, code), categories!components_category_id_fkey(name)"
+          "id, name, sku, available_quantity, total_quantity, condition, status, storage_location, image_urls, laboratories(name, code), categories!components_category_id_fkey(name)"
         )
         .is("deleted_at", null)
         .order("created_at", { ascending: false }),
@@ -43,6 +43,7 @@ export default async function HomePage() {
       condition: string;
       status: string;
       storage_location: string;
+      image_urls?: string[];
       laboratories?: { name: string; code: string } | null;
       categories?: { name: string } | null;
     }>;
