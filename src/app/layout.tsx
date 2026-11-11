@@ -34,9 +34,9 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "PSG iTech SmartLab // Component Lending & Lab Booking",
+  title: "PSG iTech SmartLab — Engineering Lab Equipment Portal",
   description:
-    "Browse lab components, submit borrow requests, book lab benches, and track equipment returns at PSG Institute of Technology and Applied Research (PSG iTech).",
+    "Browse laboratory components, submit project borrow requests, reserve lab benches, and manage equipment returns at PSG Institute of Technology and Applied Research (PSG iTech).",
   keywords: [
     "PSG iTech",
     "PSG Institute of Technology and Applied Research",

@@ -160,7 +160,7 @@ export function LandingPage({ stats }: { stats: LandingStats }) {
                 PSG Institute of Technology and Applied Research
               </span>
               <span className="block font-mono text-[9px] font-black tracking-widest text-sky-700 uppercase sm:hidden">
-                COMPONENT LENDING PLATFORM
+                LAB EQUIPMENT PORTAL
               </span>
             </div>
           </Link>
@@ -238,13 +238,13 @@ export function LandingPage({ stats }: { stats: LandingStats }) {
             </div>
 
             <h1 className="font-display text-4xl leading-[1.03] font-black tracking-tight text-slate-950 uppercase sm:text-5xl lg:text-6xl">
-              Lab Component Lending For{" "}
-              <span className="text-sky-700">Engineering Labs.</span>
+              Engineering Lab Equipment &amp;{" "}
+              <span className="text-sky-700">Checkout Portal.</span>
             </h1>
 
             <p className="mt-5 max-w-2xl text-base leading-relaxed font-medium text-slate-600 sm:text-lg">
-              Check live stock for microcontrollers, sensors, and test instruments, submit borrow
-              requests for your projects, book lab benches, and track due dates across departments.
+              Browse available components across PSG iTech laboratories, submit project borrow
+              requests, reserve workbenches, and track due dates in one place.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3.5">
@@ -256,7 +256,7 @@ export function LandingPage({ stats }: { stats: LandingStats }) {
               </Link>
               <Link href="/catalog">
                 <ActionButton variant="secondary" size="lg">
-                  Explore Component Catalog
+                  Browse Component Catalog
                 </ActionButton>
               </Link>
             </div>
@@ -477,7 +477,7 @@ export function LandingPage({ stats }: { stats: LandingStats }) {
           <div className="mb-10">
             <MonoLabel>HOW IT WORKS</MonoLabel>
             <h2 className="font-display mt-1 text-2xl font-black tracking-tight uppercase sm:text-3xl">
-              How Borrowing &amp; Lab Access Works
+              Borrowing &amp; Lab Booking Process
             </h2>
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
