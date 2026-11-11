@@ -120,6 +120,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       ok: true,
+      deliveryProvider: mailRes.provider || "smtp",
       message: "Verification email dispatched. Check your inbox and spam folder.",
       emailRedirectTo,
     });
@@ -161,6 +162,7 @@ export async function POST(request: NextRequest) {
 
   const res = NextResponse.json({
     ok: true,
+    deliveryProvider: "supabase",
     message: "Verification email dispatched. Check your inbox and spam folder.",
     emailRedirectTo,
   });

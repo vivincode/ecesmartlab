@@ -111,6 +111,7 @@ export async function POST(request: NextRequest) {
 
   const cookiesToApply: { name: string; value: string; options: CookieOptions }[] = [];
   let createdUser: { id: string; email_confirmed_at?: string | null } | null = null;
+  let deliveryProvider: "smtp" | "resend" | "supabase" = "supabase";
 
   if (isCustomEmailConfigured()) {
     // Custom SMTP / Resend path: creates the user with email_confirmed_at = NULL without
@@ -160,6 +161,7 @@ export async function POST(request: NextRequest) {
     }
 
     createdUser = linkData.user;
+    deliveryProvider = mailRes.provider || "smtp";
   } else {
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -248,6 +250,7 @@ export async function POST(request: NextRequest) {
     {
       ok: true,
       requiresEmailVerification: !emailConfirmed,
+      deliveryProvider,
       email,
       emailRedirectTo,
       user: {
