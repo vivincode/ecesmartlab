@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { checkRateLimit, resetRateLimitStore } from "@/lib/security/rate-limit";
 import { generateCSV } from "@/lib/reports/export";
 import {
+  buildBorrowReceiptEmailHtml,
+  buildBorrowRequestAdminEmailHtml,
   buildVerificationEmailHtml,
   isCustomEmailConfigured,
   isSmtpConfigured,
@@ -74,5 +76,51 @@ describe("Security Rate Limiter & CSV Formula Protection", () => {
     else delete process.env.SMTP_PASS;
     if (origResend !== undefined) process.env.RESEND_API_KEY = origResend;
     else delete process.env.RESEND_API_KEY;
+  });
+
+  it("renders borrow request admin alert and student receipt emails with escaped fields", () => {
+    const adminHtml = buildBorrowRequestAdminEmailHtml({
+      requestNumber: "REQ-20261112-AB12C",
+      studentName: "Vivin <M>",
+      academicId: "26L271",
+      studentEmail: "26l271@psgitech.ac.in",
+      laboratoryName: "ECE-204 — Embedded Systems Lab",
+      projectName: "IoT Node",
+      purpose: "Sensor calibration",
+      neededUntil: "2026-11-25",
+      items: [{ name: "ESP32-S3 DevKitC-1", sku: "EMB-ESP-021", quantity: 2 }],
+      reviewUrl: "http://localhost:3000/borrow",
+    });
+
+    expect(adminHtml).toContain("REQ-20261112-AB12C");
+    expect(adminHtml).toContain("Vivin &lt;M&gt;");
+    expect(adminHtml).toContain("EMB-ESP-021");
+    expect(adminHtml).toContain("2026-11-25");
+
+    const receiptHtml = buildBorrowReceiptEmailHtml({
+      stage: "approved",
+      receiptNumber: "REQ-20261112-AB12C",
+      requestNumber: "REQ-20261112-AB12C",
+      studentName: "Vivin",
+      academicId: "26L271",
+      laboratoryName: "ECE-204 — Embedded Systems Lab",
+      projectName: "IoT Node",
+      dueDate: "2026-11-25",
+      reviewedByName: "Lab Admin",
+      items: [
+        {
+          name: "ESP32-S3 DevKitC-1",
+          sku: "EMB-ESP-021",
+          quantity: 2,
+          storageLocation: "Rack E / Tray 02",
+        },
+      ],
+      portalUrl: "http://localhost:3000/borrow",
+    });
+
+    expect(receiptHtml).toContain("APPROVED // READY FOR PICKUP");
+    expect(receiptHtml).toContain("Borrow Request Approved Receipt");
+    expect(receiptHtml).toContain("2026-11-25");
+    expect(receiptHtml).toContain("Rack E / Tray 02");
   });
 });

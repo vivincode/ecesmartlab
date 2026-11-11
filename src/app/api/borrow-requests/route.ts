@@ -10,6 +10,11 @@ import { borrowRequestSchema } from "@/lib/validators/schemas";
 import { canBorrowComponent } from "@/lib/domain/lending";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { todayISO } from "@/lib/utils";
+import {
+  buildBorrowRequestAdminEmailHtml,
+  isCustomEmailConfigured,
+  sendEmailNotification,
+} from "@/lib/notifications/email";
 
 export async function GET(request: NextRequest) {
   const { context, errorResponse } = await requireRole(["student", "staff", "admin"]);
@@ -165,7 +170,7 @@ export async function POST(request: NextRequest) {
   const componentIds = d.items.map((i) => i.component_id);
   const { data: comps, error: compErr } = await supabase
     .from("components")
-    .select("id, name, laboratory_id, available_quantity, condition")
+    .select("id, name, sku, laboratory_id, available_quantity, condition")
     .in("id", componentIds)
     .is("deleted_at", null);
 
@@ -232,21 +237,96 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: itemsErr.message }, { status: 400 });
   }
 
-  // Notify assigned lab staff
-  const { data: labStaff } = await admin
-    .from("lab_staff_assignments")
-    .select("staff_id")
-    .eq("laboratory_id", d.laboratory_id);
+  // Notify assigned lab staff and administrators
+  const [{ data: labStaff }, { data: adminProfiles }, { data: labInfo }] = await Promise.all([
+    admin.from("lab_staff_assignments").select("staff_id").eq("laboratory_id", d.laboratory_id),
+    admin
+      .from("profiles")
+      .select("id, email")
+      .eq("role", "admin")
+      .eq("is_active", true)
+      .is("deleted_at", null),
+    admin.from("laboratories").select("name, code").eq("id", d.laboratory_id).maybeSingle(),
+  ]);
 
+  const notifyIds = new Set<string>();
   for (const s of labStaff ?? []) {
+    if (s.staff_id && s.staff_id !== context.userId) notifyIds.add(s.staff_id);
+  }
+  for (const a of adminProfiles ?? []) {
+    if (a.id && a.id !== context.userId) notifyIds.add(a.id);
+  }
+
+  for (const uid of notifyIds) {
     await createNotification({
-      userId: s.staff_id,
+      userId: uid,
       type: "request_submitted",
       title: "New borrow request",
       message: `${context.profile.full_name} (${context.profile.academic_id}) submitted ${requestNumber}.`,
       linkUrl: "/borrow",
       metadata: { request_id: createdReq.id },
     });
+  }
+
+  if (settings?.enable_email_notifications !== false && isCustomEmailConfigured()) {
+    const staffIds = (labStaff ?? []).map((s) => s.staff_id).filter(Boolean);
+    const { data: staffProfiles } =
+      staffIds.length > 0
+        ? await admin
+            .from("profiles")
+            .select("id, email")
+            .in("id", staffIds)
+            .eq("is_active", true)
+            .is("deleted_at", null)
+        : { data: [] as Array<{ id: string; email: string }> };
+
+    const recipientEmails = new Set<string>();
+    for (const a of adminProfiles ?? []) {
+      if (a.email && a.id !== context.userId) recipientEmails.add(a.email.toLowerCase());
+    }
+    for (const s of staffProfiles ?? []) {
+      if (s.email && s.id !== context.userId) recipientEmails.add(s.email.toLowerCase());
+    }
+
+    if (recipientEmails.size > 0) {
+      const origin =
+        request.nextUrl.origin && !request.nextUrl.origin.includes("0.0.0.0")
+          ? request.nextUrl.origin
+          : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      const reviewUrl = `${origin.replace(/\/$/, "")}/borrow`;
+      const laboratoryName = labInfo ? `${labInfo.code} — ${labInfo.name}` : "Laboratory";
+      const emailItems = d.items.map((reqItem) => {
+        const comp = comps.find((c) => c.id === reqItem.component_id);
+        return {
+          name: comp?.name || "Component",
+          sku: comp?.sku || "-",
+          quantity: reqItem.requested_qty,
+        };
+      });
+
+      const html = buildBorrowRequestAdminEmailHtml({
+        requestNumber,
+        studentName: context.profile.full_name,
+        academicId: context.profile.academic_id,
+        studentEmail: context.profile.email,
+        laboratoryName,
+        projectName: d.project_name,
+        purpose: d.purpose,
+        neededUntil: d.needed_until,
+        items: emailItems,
+        reviewUrl,
+      });
+
+      await Promise.allSettled(
+        Array.from(recipientEmails).map((to) =>
+          sendEmailNotification({
+            to,
+            subject: `New Component Request (${requestNumber}) — ${context.profile.full_name}`,
+            html,
+          })
+        )
+      );
+    }
   }
 
   await logAuditEvent({

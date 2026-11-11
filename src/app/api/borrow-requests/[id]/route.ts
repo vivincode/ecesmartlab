@@ -7,6 +7,142 @@ import {
   verifyStaffLabAccess,
 } from "@/lib/auth/guards";
 import { reviewRequestSchema } from "@/lib/validators/schemas";
+import {
+  buildBorrowReceiptEmailHtml,
+  isCustomEmailConfigured,
+  sendEmailNotification,
+} from "@/lib/notifications/email";
+
+async function dispatchStudentBorrowReceipt(params: {
+  request: NextRequest;
+  admin: ReturnType<typeof createAdminSupabase>;
+  reqRow: {
+    id: string;
+    request_number: string;
+    requester_id: string;
+    laboratory_id: string;
+    project_name: string;
+    needed_until: string;
+    override_reason?: string | null;
+  };
+  reviewerName: string;
+  stage: "approved" | "checked_out";
+  loanId?: string;
+  loanNumber?: string;
+  overrideReason?: string | null;
+}) {
+  if (!isCustomEmailConfigured()) return;
+
+  const { data: settings } = await params.admin
+    .from("institutional_settings")
+    .select("enable_email_notifications")
+    .limit(1)
+    .maybeSingle();
+
+  if (settings?.enable_email_notifications === false) return;
+
+  const [{ data: student }, { data: labInfo }] = await Promise.all([
+    params.admin
+      .from("profiles")
+      .select("full_name, academic_id, email")
+      .eq("id", params.reqRow.requester_id)
+      .maybeSingle(),
+    params.admin
+      .from("laboratories")
+      .select("name, code")
+      .eq("id", params.reqRow.laboratory_id)
+      .maybeSingle(),
+  ]);
+
+  if (!student?.email) return;
+
+  let items: Array<{
+    name: string;
+    sku: string;
+    quantity: number;
+    storageLocation?: string | null;
+    assetCode?: string | null;
+  }> = [];
+
+  if (params.stage === "checked_out" && params.loanId) {
+    const { data: loanItems } = await params.admin
+      .from("loan_items")
+      .select("quantity_borrowed, components(name, sku, storage_location), component_assets(asset_code)")
+      .eq("loan_id", params.loanId);
+
+    items = (loanItems ?? []).map((li) => {
+      const comp = li.components as unknown as {
+        name?: string;
+        sku?: string;
+        storage_location?: string | null;
+      } | null;
+      const asset = li.component_assets as unknown as { asset_code?: string | null } | null;
+      return {
+        name: comp?.name || "Component",
+        sku: comp?.sku || "-",
+        quantity: Number(li.quantity_borrowed || 0),
+        storageLocation: comp?.storage_location ?? null,
+        assetCode: asset?.asset_code ?? null,
+      };
+    });
+  } else {
+    const { data: reqItems } = await params.admin
+      .from("borrow_request_items")
+      .select("requested_qty, approved_qty, components(name, sku, storage_location)")
+      .eq("request_id", params.reqRow.id);
+
+    items = (reqItems ?? []).map((ri) => {
+      const comp = ri.components as unknown as {
+        name?: string;
+        sku?: string;
+        storage_location?: string | null;
+      } | null;
+      return {
+        name: comp?.name || "Component",
+        sku: comp?.sku || "-",
+        quantity: Number(ri.approved_qty > 0 ? ri.approved_qty : ri.requested_qty),
+        storageLocation: comp?.storage_location ?? null,
+      };
+    });
+  }
+
+  const origin =
+    params.request.nextUrl.origin && !params.request.nextUrl.origin.includes("0.0.0.0")
+      ? params.request.nextUrl.origin
+      : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const portalUrl = `${origin.replace(/\/$/, "")}/borrow`;
+  const receiptNumber =
+    params.stage === "checked_out" && params.loanNumber
+      ? params.loanNumber
+      : params.reqRow.request_number;
+  const laboratoryName = labInfo ? `${labInfo.code} — ${labInfo.name}` : "Laboratory";
+
+  const html = buildBorrowReceiptEmailHtml({
+    stage: params.stage,
+    receiptNumber,
+    requestNumber: params.reqRow.request_number,
+    studentName: student.full_name,
+    academicId: student.academic_id,
+    laboratoryName,
+    projectName: params.reqRow.project_name,
+    dueDate: params.reqRow.needed_until,
+    reviewedByName: params.reviewerName,
+    overrideReason: params.overrideReason ?? params.reqRow.override_reason ?? null,
+    items,
+    portalUrl,
+  });
+
+  const subject =
+    params.stage === "checked_out"
+      ? `PSG iTech SmartLab // Equipment Checkout Receipt (${receiptNumber})`
+      : `PSG iTech SmartLab // Approved Borrow Receipt (${params.reqRow.request_number})`;
+
+  await sendEmailNotification({
+    to: student.email,
+    subject,
+    html,
+  }).catch(() => {});
+}
 
 export async function PATCH(
   request: NextRequest,
@@ -124,6 +260,15 @@ export async function PATCH(
       });
     }
 
+    await dispatchStudentBorrowReceipt({
+      request,
+      admin,
+      reqRow,
+      reviewerName: context.profile.full_name,
+      stage: "approved",
+      overrideReason: override_reason,
+    });
+
     return NextResponse.json(rpcRes);
   }
 
@@ -179,6 +324,18 @@ export async function PATCH(
     if (rpcErr) {
       return NextResponse.json({ error: rpcErr.message }, { status: 409 });
     }
+
+    const checkoutPayload = (rpcRes ?? {}) as { loan_id?: string; loan_number?: string };
+    await dispatchStudentBorrowReceipt({
+      request,
+      admin,
+      reqRow,
+      reviewerName: context.profile.full_name,
+      stage: "checked_out",
+      loanId: checkoutPayload.loan_id,
+      loanNumber: checkoutPayload.loan_number,
+    });
+
     return NextResponse.json(rpcRes);
   }
 
