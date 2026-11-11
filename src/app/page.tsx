@@ -15,6 +15,7 @@ export default async function HomePage() {
           totalDepartments: 0,
           availableUnits: 0,
           featuredComponents: [],
+          departments: [],
         }}
       />
     );
@@ -31,7 +32,7 @@ export default async function HomePage() {
         .is("deleted_at", null)
         .order("created_at", { ascending: false }),
       supabase.from("laboratories").select("id", { count: "exact", head: true }).is("deleted_at", null),
-      supabase.from("departments").select("id", { count: "exact", head: true }).is("deleted_at", null),
+      supabase.from("departments").select("id, name, code").is("deleted_at", null).order("name"),
     ]);
 
     const comps = (compsRes.data ?? []) as unknown as Array<{
@@ -48,6 +49,12 @@ export default async function HomePage() {
       categories?: { name: string } | null;
     }>;
 
+    const departments = (deptsRes.data ?? []) as Array<{
+      id: string;
+      name: string;
+      code: string;
+    }>;
+
     const availableUnits = comps.reduce((sum, c) => sum + (c.available_quantity || 0), 0);
 
     return (
@@ -56,9 +63,10 @@ export default async function HomePage() {
           configured: true,
           totalComponents: comps.length,
           totalLabs: labsRes.count ?? 0,
-          totalDepartments: deptsRes.count ?? 0,
+          totalDepartments: departments.length,
           availableUnits,
           featuredComponents: comps.slice(0, 6),
+          departments,
         }}
       />
     );
@@ -72,6 +80,7 @@ export default async function HomePage() {
           totalDepartments: 0,
           availableUnits: 0,
           featuredComponents: [],
+          departments: [],
         }}
       />
     );
