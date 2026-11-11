@@ -209,7 +209,7 @@ export function LandingPage({ stats }: { stats: LandingStats }) {
           transition={{ duration: 0.32 }}
           className="text-center"
         >
-          <div className="mx-auto mb-5 inline-block border-2 border-slate-900 bg-white px-3.5 py-2 shadow-brutal-2">
+          <div className="mx-auto mb-2 inline-block border-2 border-slate-900 bg-white px-3.5 py-2 shadow-brutal-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/images/psgitech-logo.webp"
@@ -217,27 +217,18 @@ export function LandingPage({ stats }: { stats: LandingStats }) {
               className="h-10 w-auto object-contain sm:h-12"
             />
           </div>
-
-          <h1 className="font-display text-3xl leading-tight font-black tracking-tight text-slate-950 uppercase sm:text-4xl lg:text-5xl">
-            Engineering Lab Equipment &amp;{" "}
-            <span className="text-sky-700">Checkout Portal</span>
-          </h1>
-
-          <p className="mx-auto mt-3 max-w-xl text-sm font-medium text-slate-600 sm:text-base">
-            Create your student account to borrow components, reserve lab benches, and track returns.
-          </p>
         </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.38, delay: 0.06 }}
-          className="mx-auto mt-8 w-full max-w-lg"
+          className="mx-auto mt-6 w-full max-w-lg"
         >
           <StudentRegisterCard
             initialDepartments={stats.departments}
             initialConfigured={stats.configured}
-            headingAs="h2"
+            headingAs="h1"
           />
         </motion.div>
 
