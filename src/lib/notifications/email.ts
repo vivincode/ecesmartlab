@@ -1,4 +1,24 @@
 import nodemailer from "nodemailer";
+import { isServiceRoleConfigured, isSupabaseConfigured } from "@/lib/supabase/config";
+import { createAdminSupabase } from "@/lib/supabase/server";
+
+type ResolvedMailTransport =
+  | {
+      provider: "smtp";
+      host: string;
+      port: number;
+      secure: boolean;
+      user: string;
+      pass: string;
+      fromAddress: string;
+    }
+  | {
+      provider: "resend";
+      apiKey: string;
+      fromAddress: string;
+    };
+
+let cachedDbTransport: { expiresAt: number; value: ResolvedMailTransport | null } | null = null;
 
 function escapeHtml(value: string): string {
   return value
@@ -263,41 +283,119 @@ export function buildBorrowReceiptEmailHtml(params: {
   );
 }
 
-/**
- * Sends transactional email via configured SMTP (Nodemailer) or Resend API.
- * Falls back gracefully with `{ sent: false }` if neither transport is configured.
- */
-export async function sendEmailNotification(params: {
-  to: string;
-  subject: string;
-  html: string;
-}): Promise<{ sent: boolean; provider?: "smtp" | "resend"; reason?: string }> {
-  const fromAddress =
+async function resolveMailTransport(): Promise<ResolvedMailTransport | null> {
+  const defaultFrom =
     process.env.SMTP_FROM?.trim() ||
     process.env.EMAIL_FROM?.trim() ||
     process.env.SMTP_USER?.trim() ||
     "PSG iTech SmartLab <noreply@smartlab.edu>";
 
   if (isSmtpConfigured()) {
-    try {
-      const port = Number(process.env.SMTP_PORT || 587);
-      const secure =
-        process.env.SMTP_SECURE !== undefined
-          ? process.env.SMTP_SECURE === "true"
-          : port === 465;
+    const port = Number(process.env.SMTP_PORT || 587);
+    const secure =
+      process.env.SMTP_SECURE !== undefined
+        ? process.env.SMTP_SECURE === "true"
+        : port === 465;
 
-      const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST!.trim(),
+    return {
+      provider: "smtp",
+      host: process.env.SMTP_HOST!.trim(),
+      port,
+      secure,
+      user: process.env.SMTP_USER!.trim(),
+      pass: process.env.SMTP_PASS!,
+      fromAddress: defaultFrom,
+    };
+  }
+
+  const envApiKey = process.env.RESEND_API_KEY?.trim();
+  if (envApiKey) {
+    return {
+      provider: "resend",
+      apiKey: envApiKey,
+      fromAddress: defaultFrom,
+    };
+  }
+
+  if (!isSupabaseConfigured() || !isServiceRoleConfigured()) {
+    return null;
+  }
+
+  if (cachedDbTransport && cachedDbTransport.expiresAt > Date.now()) {
+    return cachedDbTransport.value;
+  }
+
+  try {
+    const admin = createAdminSupabase();
+    const { data } = await admin
+      .from("private_mailer_config")
+      .select("provider, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass, from_address")
+      .eq("is_enabled", true)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    let resolved: ResolvedMailTransport | null = null;
+    if (data?.provider === "smtp" && data.smtp_host && data.smtp_user && data.smtp_pass) {
+      const port = Number(data.smtp_port || 465);
+      resolved = {
+        provider: "smtp",
+        host: String(data.smtp_host).trim(),
         port,
-        secure,
+        secure: data.smtp_secure ?? port === 465,
+        user: String(data.smtp_user).trim(),
+        pass: String(data.smtp_pass),
+        fromAddress:
+          data.from_address?.trim() ||
+          `PSG iTech SmartLab <${String(data.smtp_user).trim()}>`,
+      };
+    }
+
+    cachedDbTransport = { expiresAt: Date.now() + 60_000, value: resolved };
+    return resolved;
+  } catch {
+    return null;
+  }
+}
+
+export async function hasCustomEmailTransport(): Promise<boolean> {
+  return (await resolveMailTransport()) !== null;
+}
+
+export async function getActiveEmailTransportLabel(): Promise<"smtp" | "resend" | "supabase-default"> {
+  const transport = await resolveMailTransport();
+  if (!transport) return "supabase-default";
+  return transport.provider;
+}
+
+/**
+ * Sends transactional email via configured SMTP (Nodemailer) or Resend API,
+ * resolving credentials from environment variables or Supabase private_mailer_config.
+ */
+export async function sendEmailNotification(params: {
+  to: string;
+  subject: string;
+  html: string;
+}): Promise<{ sent: boolean; provider?: "smtp" | "resend"; reason?: string }> {
+  const transport = await resolveMailTransport();
+  if (!transport) {
+    return { sent: false, reason: "No custom SMTP or RESEND_API_KEY configured" };
+  }
+
+  if (transport.provider === "smtp") {
+    try {
+      const transporter = nodemailer.createTransport({
+        host: transport.host,
+        port: transport.port,
+        secure: transport.secure,
         auth: {
-          user: process.env.SMTP_USER!.trim(),
-          pass: process.env.SMTP_PASS!,
+          user: transport.user,
+          pass: transport.pass,
         },
       });
 
       await transporter.sendMail({
-        from: fromAddress,
+        from: transport.fromAddress,
         to: params.to,
         subject: params.subject,
         html: params.html,
@@ -313,20 +411,15 @@ export async function sendEmailNotification(params: {
     }
   }
 
-  const apiKey = process.env.RESEND_API_KEY?.trim();
-  if (!apiKey) {
-    return { sent: false, reason: "No custom SMTP or RESEND_API_KEY configured" };
-  }
-
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${transport.apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: fromAddress,
+        from: transport.fromAddress,
         to: [params.to],
         subject: params.subject,
         html: params.html,

@@ -7,7 +7,7 @@ import { checkRateLimit } from "@/lib/security/rate-limit";
 import { logAuditEvent } from "@/lib/auth/guards";
 import {
   buildVerificationEmailHtml,
-  isCustomEmailConfigured,
+  hasCustomEmailTransport,
   sendEmailNotification,
 } from "@/lib/notifications/email";
 
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
   let createdUser: { id: string; email_confirmed_at?: string | null } | null = null;
   let deliveryProvider: "smtp" | "resend" | "supabase" = "supabase";
 
-  if (isCustomEmailConfigured()) {
+  if (await hasCustomEmailTransport()) {
     // Custom SMTP / Resend path: creates the user with email_confirmed_at = NULL without
     // hitting Supabase's built-in 2 emails/hour cap, then sends the branded verification link.
     const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({

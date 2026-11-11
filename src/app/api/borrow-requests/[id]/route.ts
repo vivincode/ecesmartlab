@@ -9,7 +9,7 @@ import {
 import { reviewRequestSchema } from "@/lib/validators/schemas";
 import {
   buildBorrowReceiptEmailHtml,
-  isCustomEmailConfigured,
+  hasCustomEmailTransport,
   sendEmailNotification,
 } from "@/lib/notifications/email";
 
@@ -31,7 +31,7 @@ async function dispatchStudentBorrowReceipt(params: {
   loanNumber?: string;
   overrideReason?: string | null;
 }) {
-  if (!isCustomEmailConfigured()) return;
+  if (!(await hasCustomEmailTransport())) return;
 
   const { data: settings } = await params.admin
     .from("institutional_settings")

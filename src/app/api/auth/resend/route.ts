@@ -6,7 +6,7 @@ import { createAdminSupabase } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import {
   buildVerificationEmailHtml,
-  isCustomEmailConfigured,
+  hasCustomEmailTransport,
   sendEmailNotification,
 } from "@/lib/notifications/email";
 
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
   const cleanOrigin = origin.replace(/\/$/, "");
   const emailRedirectTo = `${cleanOrigin}/auth/callback?next=/dashboard`;
 
-  if (isCustomEmailConfigured() && isServiceRoleConfigured()) {
+  if ((await hasCustomEmailTransport()) && isServiceRoleConfigured()) {
     const admin = createAdminSupabase();
     const { data: profileRow } = await admin
       .from("profiles")

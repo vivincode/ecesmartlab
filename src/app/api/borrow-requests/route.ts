@@ -12,7 +12,7 @@ import { checkRateLimit } from "@/lib/security/rate-limit";
 import { todayISO } from "@/lib/utils";
 import {
   buildBorrowRequestAdminEmailHtml,
-  isCustomEmailConfigured,
+  hasCustomEmailTransport,
   sendEmailNotification,
 } from "@/lib/notifications/email";
 
@@ -268,7 +268,7 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  if (settings?.enable_email_notifications !== false && isCustomEmailConfigured()) {
+  if (settings?.enable_email_notifications !== false && (await hasCustomEmailTransport())) {
     const staffIds = (labStaff ?? []).map((s) => s.staff_id).filter(Boolean);
     const { data: staffProfiles } =
       staffIds.length > 0

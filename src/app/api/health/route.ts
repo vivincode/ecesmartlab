@@ -1,13 +1,9 @@
 import { NextResponse } from "next/server";
 import { isServiceRoleConfigured, isSupabaseConfigured } from "@/lib/supabase/config";
-import { isCustomEmailConfigured, isSmtpConfigured } from "@/lib/notifications/email";
+import { getActiveEmailTransportLabel } from "@/lib/notifications/email";
 
 export async function GET() {
-  const emailTransport = isSmtpConfigured()
-    ? "smtp"
-    : isCustomEmailConfigured()
-      ? "resend"
-      : "supabase-default";
+  const emailTransport = await getActiveEmailTransportLabel();
 
   return NextResponse.json({
     ok: true,
