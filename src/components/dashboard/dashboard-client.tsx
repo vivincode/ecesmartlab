@@ -136,17 +136,17 @@ export function DashboardClient({ data }: { data: DashboardPayload }) {
       <div className="flex flex-col justify-between gap-4 border-b-2 border-slate-900 pb-4 sm:flex-row sm:items-end">
         <div>
           <MonoLabel>
-            {profile.role.toUpperCase()} TELEMETRY DECK // {profile.academic_id}
+            {profile.role.toUpperCase()} WORKSPACE // {profile.academic_id}
           </MonoLabel>
           <h1 className="font-display mt-1 text-2xl font-black tracking-tight text-slate-950 uppercase sm:text-3xl">
             Welcome, {profile.full_name}
           </h1>
           <p className="mt-1 text-xs font-medium text-slate-600">
             {isAdmin
-              ? "Institution-wide inventory utilization, active loans, audit analytics, and policy control."
+              ? "Overview of lab inventory, active loans, reports, and user settings."
               : profile.role === "staff"
-                ? "Assigned laboratory inventory, pending borrowing approvals, checkouts, and maintenance queue."
-                : "Track your active hardware loans, pending approvals, project teams, and lab seat bookings."}
+                ? "Assigned laboratory stock, pending borrow approvals, checkouts, and maintenance tickets."
+                : "View your borrowed components, pending requests, project teams, and lab bookings."}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

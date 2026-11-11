@@ -86,53 +86,53 @@ const CATEGORIES = [
 const WORKFLOW_STEPS = [
   {
     step: "01",
-    title: "Discover & Verify Stock",
-    desc: "Filter components across every department lab by real-time availability, datasheet specs, and serialized asset tags.",
+    title: "Check Lab Stock",
+    desc: "Filter components across department labs by real-time availability, specs, and asset tags.",
   },
   {
     step: "02",
-    title: "Submit Project Request",
-    desc: "Attach your academic project or team ID, select unit quantities, and pick an expected return date within lab policy.",
+    title: "Request Components",
+    desc: "Pick the components and quantities needed for your project and select a return date.",
   },
   {
     step: "03",
-    title: "Staff Review & QR Checkout",
-    desc: "Assigned lab staff approve requests atomically—reserving stock via database row locks—and scan QR codes at pickup.",
+    title: "Staff Approval & Pickup",
+    desc: "Lab staff review your request and check out equipment at the counter using QR asset tags.",
   },
   {
     step: "04",
-    title: "Inspect, Return & Audit",
-    desc: "Partial or full returns are inspected for condition. Defective units trigger maintenance tickets and block unsafe reuse.",
+    title: "Inspect & Return",
+    desc: "Staff verify returned items by condition and log any damaged or missing units for repair.",
   },
 ];
 
 const FAQS = [
   {
     q: "Who can borrow hardware through SmartLab?",
-    a: "Registered students and project teams across connected engineering departments. Faculty and laboratory staff access is provisioned internally by your institution administrator.",
+    a: "Registered PSG iTech students and project teams. Faculty and lab staff accounts are created by the administrator.",
   },
   {
-    q: "How does SmartLab prevent double-booking and negative stock?",
-    a: "All borrow approvals, checkouts, return inspections, and lab seat bookings execute inside PostgreSQL transactional RPC functions with row-level locks (SELECT ... FOR UPDATE).",
+    q: "How does SmartLab prevent double-booking?",
+    a: "Available stock and lab seat counts are updated on approval and checkout so two users cannot claim the same unit.",
   },
   {
     q: "What happens if equipment is returned damaged or missing?",
-    a: "Staff log exact returned, damaged, and lost counts in the Return Inspection workflow. Damaged items automatically generate a Maintenance Report and block future borrowing until cleared.",
+    a: "Staff record damaged or missing quantities during return inspection, opening a maintenance ticket and holding faulty units from checkout.",
   },
   {
-    q: "Can student project teams share equipment visibility?",
-    a: "Yes. Teams get an invite code, configurable member borrowing permissions, shared loan tracking, and automatic duplicate-borrowing prevention per project.",
+    q: "Can student project teams share equipment lists?",
+    a: "Yes. Teams share an invite code so members can view borrowed parts and avoid duplicate requests for the same project.",
   },
 ];
 
 const TICKER_ITEMS = [
-  "ATOMIC POSTGRESQL RESERVATIONS",
-  "QR ASSET CHECKOUT & RETURN",
-  "MULTI-LAB RBAC ISOLATION",
-  "REAL-TIME OVERDUE TELEMETRY",
-  "CAPACITY-GUARDED LAB BOOKINGS",
-  "CSV & PDF AUDIT EXPORTS",
-  "DEFECT AUTO-QUARANTINE",
+  "LIVE COMPONENT STOCK",
+  "QR CHECKOUT & RETURN",
+  "DEPARTMENT LAB ACCESS",
+  "DUE DATE REMINDERS",
+  "LAB SEAT BOOKINGS",
+  "CSV & PDF REPORTS",
+  "MAINTENANCE TRACKING",
 ];
 
 export function LandingPage({ stats }: { stats: LandingStats }) {
@@ -238,14 +238,13 @@ export function LandingPage({ stats }: { stats: LandingStats }) {
             </div>
 
             <h1 className="font-display text-4xl leading-[1.03] font-black tracking-tight text-slate-950 uppercase sm:text-5xl lg:text-6xl">
-              Precision Component Lending For College{" "}
+              Lab Component Lending For{" "}
               <span className="text-sky-700">Engineering Labs.</span>
             </h1>
 
             <p className="mt-5 max-w-2xl text-base leading-relaxed font-medium text-slate-600 sm:text-lg">
-              Centralize microcontrollers, test instruments, serialized assets, and workbench bookings
-              across every department. Built with PostgreSQL row-level security, transactional stock
-              locks, QR checkout, and automated defect quarantine.
+              Check live stock for microcontrollers, sensors, and test instruments, submit borrow
+              requests for your projects, book lab benches, and track due dates across departments.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3.5">
@@ -262,11 +261,11 @@ export function LandingPage({ stats }: { stats: LandingStats }) {
               </Link>
             </div>
 
-            {/* Telemetry Metric Strip */}
+            {/* Quick Inventory Summary */}
             <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
               {[
                 {
-                  label: "TRACKED SKUS",
+                  label: "CATALOG ITEMS",
                   value: stats.configured ? String(stats.totalComponents) : "SQL Ready",
                 },
                 {
@@ -274,12 +273,12 @@ export function LandingPage({ stats }: { stats: LandingStats }) {
                   value: stats.configured ? String(stats.availableUnits) : "Live Sync",
                 },
                 {
-                  label: "LAB COMPARTMENTS",
+                  label: "ACTIVE LABS",
                   value: stats.configured ? String(stats.totalLabs) : "Multi-Lab",
                 },
                 {
                   label: "DEPARTMENTS",
-                  value: stats.configured ? String(stats.totalDepartments) : "RBAC Scoped",
+                  value: stats.configured ? String(stats.totalDepartments) : "All Depts",
                 },
               ].map((m) => (
                 <div
@@ -297,7 +296,7 @@ export function LandingPage({ stats }: { stats: LandingStats }) {
             </div>
           </motion.div>
 
-          {/* Asterix-style Engineering Telemetry Frame */}
+          {/* Lab Equipment Snapshot */}
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
@@ -309,11 +308,11 @@ export function LandingPage({ stats }: { stats: LandingStats }) {
                 <div className="flex items-center gap-2">
                   <QrCode className="h-4 w-4 text-sky-700" />
                   <span className="font-mono text-xs font-black tracking-wider uppercase">
-                    INVENTORY TELEMETRY DECK
+                    LIVE LAB INVENTORY
                   </span>
                 </div>
                 <span className="bg-slate-900 px-2 py-0.5 font-mono text-[10px] font-bold text-white">
-                  RLS ACTIVE
+                  ONLINE
                 </span>
               </div>
 
@@ -365,16 +364,16 @@ export function LandingPage({ stats }: { stats: LandingStats }) {
 
               <div className="mt-4 grid grid-cols-3 gap-2 border-t-2 border-slate-900 pt-3 font-mono text-[10px] font-bold text-slate-600">
                 <div>
-                  <span className="block text-slate-400">LOCKING</span>
-                  <span className="text-slate-900">FOR UPDATE</span>
+                  <span className="block text-slate-400">CHECKOUT</span>
+                  <span className="text-slate-900">QR SCAN</span>
                 </div>
                 <div>
-                  <span className="block text-slate-400">EXPORTS</span>
+                  <span className="block text-slate-400">REPORTS</span>
                   <span className="text-slate-900">CSV + PDF</span>
                 </div>
                 <div>
                   <span className="block text-slate-400">ALERTS</span>
-                  <span className="text-slate-900">REALTIME</span>
+                  <span className="text-slate-900">EMAIL + IN-APP</span>
                 </div>
               </div>
             </div>
@@ -476,7 +475,7 @@ export function LandingPage({ stats }: { stats: LandingStats }) {
       <section id="workflow" className="border-y-2 border-slate-900 bg-slate-50 py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="mb-10">
-            <MonoLabel>OPERATIONAL LIFECYCLE</MonoLabel>
+            <MonoLabel>HOW IT WORKS</MonoLabel>
             <h2 className="font-display mt-1 text-2xl font-black tracking-tight uppercase sm:text-3xl">
               How Borrowing &amp; Lab Access Works
             </h2>
@@ -498,7 +497,7 @@ export function LandingPage({ stats }: { stats: LandingStats }) {
       {/* Categories */}
       <section id="categories" className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
         <div className="mb-8">
-          <MonoLabel>HARDWARE TAXONOMY</MonoLabel>
+          <MonoLabel>EQUIPMENT CATEGORIES</MonoLabel>
           <h2 className="font-display mt-1 text-2xl font-black tracking-tight uppercase sm:text-3xl">
             Supported Equipment Categories
           </h2>
@@ -531,14 +530,14 @@ export function LandingPage({ stats }: { stats: LandingStats }) {
               <MonoLabel>FOR STUDENTS &amp; PROJECT TEAMS</MonoLabel>
             </div>
             <h3 className="font-display mt-2 text-xl font-black uppercase">
-              Build faster without lab bottlenecks
+              Find parts and book benches easily
             </h3>
             <ul className="mt-4 space-y-2.5 text-sm text-slate-700">
               {[
-                "Real-time stock counts, pinout specs, and datasheets before walking to the lab",
-                "Project team spaces with shared loan visibility and duplicate-request guards",
-                "Self-service loan extension requests and instant status notifications",
-                "Capacity-checked laboratory seat & workbench reservations",
+                "Check live stock, specs, and datasheets before walking to the lab",
+                "Project team spaces so members can share borrowed equipment lists",
+                "Request loan extensions and see due date updates in one place",
+                "Book lab seats and workbenches with real-time slot availability",
               ].map((line) => (
                 <li key={line} className="flex items-start gap-2.5">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
@@ -554,14 +553,14 @@ export function LandingPage({ stats }: { stats: LandingStats }) {
               <MonoLabel>FOR STAFF &amp; ADMINISTRATORS</MonoLabel>
             </div>
             <h3 className="font-display mt-2 text-xl font-black uppercase">
-              Zero spreadsheet drift, full auditability
+              Keep lab loans and inventory organized
             </h3>
             <ul className="mt-4 space-y-2.5 text-sm text-slate-700">
               {[
-                "Scoped lab permissions—staff only manage laboratories assigned to them",
-                "Partial returns, damage photo uploads, and automatic maintenance blocking",
-                "QR code label generation, CSV bulk stock import, and CSV/PDF audit exports",
-                "Configurable institutional limits, grace periods, and immutable audit logs",
+                "Lab-scoped access so staff manage only their assigned laboratories",
+                "Log partial returns, damaged items, and repair tickets cleanly",
+                "Print QR code labels, import CSV stock lists, and export CSV/PDF reports",
+                "Set borrow duration limits, stock alerts, and review activity history",
               ].map((line) => (
                 <li key={line} className="flex items-start gap-2.5">
                   <Lock className="mt-0.5 h-4 w-4 shrink-0 text-sky-700" />
@@ -576,7 +575,7 @@ export function LandingPage({ stats }: { stats: LandingStats }) {
       {/* FAQ */}
       <section id="faq" className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
         <div className="mb-8 text-center">
-          <MonoLabel>TECHNICAL &amp; POLICY QUESTIONS</MonoLabel>
+          <MonoLabel>COMMON QUESTIONS</MonoLabel>
           <h2 className="font-display mt-1 text-2xl font-black tracking-tight uppercase sm:text-3xl">
             Frequently Asked Questions
           </h2>

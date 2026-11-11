@@ -1,12 +1,15 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { UserCheck } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Trash2, UserCheck } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import { ActionButton, BrutalCard, MonoLabel } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/toast";
 import type { Department, Profile } from "@/types/database";
 
 export default function ProfilePage() {
+  const router = useRouter();
   const { toast } = useToast();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -15,6 +18,9 @@ export default function ProfilePage() {
   const [year, setYear] = useState("");
   const [deptId, setDeptId] = useState("");
   const [saving, setSaving] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     Promise.all([fetch("/api/profile").then((r) => r.json()), fetch("/api/meta").then((r) => r.json())]).then(
@@ -57,12 +63,45 @@ export default function ProfilePage() {
     }
   }
 
+  async function handleDeleteAccount(e: React.FormEvent) {
+    e.preventDefault();
+    if (deleteConfirmText.trim().toUpperCase() !== "DELETE") {
+      toast('Type "DELETE" to confirm account removal', "error");
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/profile", { method: "DELETE" });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast(d.error || "Unable to delete account", "error");
+        setDeleting(false);
+        return;
+      }
+
+      try {
+        const supabase = createClient();
+        await supabase.auth.signOut();
+      } catch {
+        // Session already cleared server-side
+      }
+
+      toast("Account deleted", "success");
+      router.push("/");
+      router.refresh();
+    } catch {
+      toast("Network error while deleting account", "error");
+      setDeleting(false);
+    }
+  }
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="border-b-2 border-slate-900 pb-4">
         <MonoLabel>ACCOUNT SETTINGS</MonoLabel>
         <h1 className="font-display mt-1 text-2xl font-black uppercase sm:text-3xl">
-          My Institutional Profile
+          My Profile
         </h1>
       </div>
 
@@ -142,6 +181,75 @@ export default function ProfilePage() {
             {saving ? "Saving..." : "Save Profile"}
           </ActionButton>
         </form>
+      </BrutalCard>
+
+      <BrutalCard className="border-rose-700 p-6">
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          <div>
+            <MonoLabel className="text-rose-700">DANGER ZONE</MonoLabel>
+            <h2 className="font-display mt-1 text-lg font-black text-slate-950 uppercase">
+              Delete Account
+            </h2>
+            <p className="mt-1 text-xs text-slate-600">
+              Permanently remove your SmartLab account. Any borrowed equipment must be returned
+              first.
+            </p>
+          </div>
+          {!showDeleteConfirm && (
+            <ActionButton
+              type="button"
+              variant="secondary"
+              className="shrink-0 border-rose-700 text-rose-700 hover:bg-rose-50"
+              onClick={() => setShowDeleteConfirm(true)}
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete Account
+            </ActionButton>
+          )}
+        </div>
+
+        {showDeleteConfirm && (
+          <form
+            onSubmit={handleDeleteAccount}
+            className="mt-4 space-y-3 border-t-2 border-rose-200 pt-4"
+          >
+            <label
+              htmlFor="delete-confirm-input"
+              className="block font-mono text-[11px] font-black text-rose-800 uppercase"
+            >
+              Type DELETE to confirm permanent account removal
+            </label>
+            <input
+              id="delete-confirm-input"
+              required
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder="DELETE"
+              className="w-full border-2 border-rose-700 bg-white px-3 py-2 font-mono text-sm uppercase focus:outline-none"
+            />
+            <div className="flex flex-wrap gap-2">
+              <ActionButton
+                type="submit"
+                variant="primary"
+                disabled={deleting || deleteConfirmText.trim().toUpperCase() !== "DELETE"}
+                className="bg-rose-700 text-white hover:bg-rose-800"
+              >
+                <Trash2 className="h-4 w-4" />
+                {deleting ? "Deleting..." : "Confirm Delete Account"}
+              </ActionButton>
+              <ActionButton
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setDeleteConfirmText("");
+                }}
+              >
+                Cancel
+              </ActionButton>
+            </div>
+          </form>
+        )}
       </BrutalCard>
     </div>
   );
