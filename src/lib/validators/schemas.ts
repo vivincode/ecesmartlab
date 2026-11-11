@@ -12,14 +12,27 @@ export const registerSchema = z
       .regex(/^[A-Za-z0-9_-]+$/, "Register number may only contain letters, numbers, hyphens, or underscores"),
     password: z.string().min(8, "Password must be at least 8 characters").max(128),
     confirmPassword: z.string().optional(),
-    role: z.enum(["student", "staff"]).default("student"),
-    staffInviteCode: z.string().optional(),
     departmentId: z.string().uuid().optional().or(z.literal("")),
   })
   .refine((data) => data.confirmPassword === undefined || data.password === data.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
   });
+
+export const adminProvisionUserSchema = z.object({
+  fullName: z.string().trim().min(2, "Full name is required").max(80),
+  email: z.string().trim().email("Enter a valid institutional email"),
+  academicId: z
+    .string()
+    .trim()
+    .min(3, "Academic / Staff ID is required")
+    .max(32)
+    .regex(/^[A-Za-z0-9_-]+$/, "ID may only contain letters, numbers, hyphens, or underscores"),
+  password: z.string().min(8, "Password must be at least 8 characters").max(128),
+  role: z.enum(["student", "staff", "admin"]),
+  departmentId: z.string().uuid().optional().or(z.literal("")),
+  assignedLabIds: z.array(z.string().uuid()).optional().default([]),
+});
 
 export const profileUpdateSchema = z.object({
   full_name: z.string().trim().min(2).max(80),

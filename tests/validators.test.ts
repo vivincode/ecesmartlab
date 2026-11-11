@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  adminProvisionUserSchema,
   borrowRequestSchema,
   componentSchema,
   componentUpdateSchema,
@@ -27,9 +28,6 @@ describe("Zod Security & Input Validation Schemas", () => {
       password: "password123",
     });
     expect(ok.success).toBe(true);
-    if (ok.success) {
-      expect(ok.data.role).toBe("student");
-    }
 
     const mismatch = registerSchema.safeParse({
       fullName: "Priya Sharma",
@@ -39,6 +37,15 @@ describe("Zod Security & Input Validation Schemas", () => {
       confirmPassword: "differentPassword",
     });
     expect(mismatch.success).toBe(false);
+
+    const adminProv = adminProvisionUserSchema.safeParse({
+      fullName: "Dr. S. Krishnan",
+      email: "krishnan@college.edu",
+      academicId: "FAC-ECE-01",
+      password: "password123",
+      role: "staff",
+    });
+    expect(adminProv.success).toBe(true);
   });
 
   it("prevents available quantity exceeding total quantity in component schema", () => {

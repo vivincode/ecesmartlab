@@ -49,6 +49,18 @@ export function AdminClient({
   const [assignUser, setAssignUser] = useState<Profile | null>(null);
   const [selectedLabIds, setSelectedLabIds] = useState<string[]>([]);
 
+  // Provision internal Faculty / Staff / Admin account state
+  const [showProvisionModal, setShowProvisionModal] = useState(false);
+  const [provisionForm, setProvisionForm] = useState({
+    fullName: "",
+    academicId: "",
+    email: "",
+    departmentId: departments[0]?.id || "",
+    role: "staff" as AppRole,
+    password: "",
+    assignedLabIds: [] as string[],
+  });
+
   // New Lab form
   const [labForm, setLabForm] = useState({
     name: "",
@@ -99,6 +111,40 @@ export function AdminClient({
     toast("User account updated", "success");
     setAssignUser(null);
     await refreshUsers();
+  }
+
+  async function provisionAccount(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...provisionForm,
+          departmentId: provisionForm.departmentId || undefined,
+        }),
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        toast(d.error || "Provisioning failed", "error");
+        return;
+      }
+      toast(`Provisioned ${provisionForm.role} account for ${provisionForm.fullName}`, "success");
+      setShowProvisionModal(false);
+      setProvisionForm({
+        fullName: "",
+        academicId: "",
+        email: "",
+        departmentId: departments[0]?.id || "",
+        role: "staff",
+        password: "",
+        assignedLabIds: [],
+      });
+      await refreshUsers();
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function createLaboratory(e: React.FormEvent) {
@@ -227,7 +273,156 @@ export function AdminClient({
 
       {/* USERS TAB */}
       {tab === "users" && (
-        <BrutalCard className="overflow-x-auto">
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="font-mono text-xs font-bold text-slate-600 uppercase">
+              Registered Accounts ({users.length})
+            </span>
+            <ActionButton
+              variant="primary"
+              size="sm"
+              onClick={() => setShowProvisionModal((v) => !v)}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              {showProvisionModal ? "Close Form" : "Provision Faculty / Admin"}
+            </ActionButton>
+          </div>
+
+          {showProvisionModal && (
+            <BrutalCard className="p-5">
+              <MonoLabel>INTERNAL ACCOUNT PROVISIONING</MonoLabel>
+              <h2 className="mt-1 text-base font-black uppercase">
+                Create Faculty / Staff / Admin Account
+              </h2>
+              <form onSubmit={provisionAccount} className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div>
+                  <label className="mb-1 block font-mono text-[10px] font-black uppercase">
+                    Full Name *
+                  </label>
+                  <input
+                    required
+                    value={provisionForm.fullName}
+                    onChange={(e) => setProvisionForm((p) => ({ ...p, fullName: e.target.value }))}
+                    placeholder="Dr. S. Krishnan"
+                    className="w-full border-2 border-slate-900 bg-white px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block font-mono text-[10px] font-black uppercase">
+                    Staff / Academic ID *
+                  </label>
+                  <input
+                    required
+                    value={provisionForm.academicId}
+                    onChange={(e) => setProvisionForm((p) => ({ ...p, academicId: e.target.value }))}
+                    placeholder="FAC-ECE-01"
+                    className="w-full border-2 border-slate-900 bg-white px-3 py-2 font-mono text-sm uppercase"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block font-mono text-[10px] font-black uppercase">
+                    Institutional Email *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={provisionForm.email}
+                    onChange={(e) => setProvisionForm((p) => ({ ...p, email: e.target.value }))}
+                    placeholder="faculty@college.edu"
+                    className="w-full border-2 border-slate-900 bg-white px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block font-mono text-[10px] font-black uppercase">
+                    Role *
+                  </label>
+                  <select
+                    value={provisionForm.role}
+                    onChange={(e) =>
+                      setProvisionForm((p) => ({ ...p, role: e.target.value as AppRole }))
+                    }
+                    className="w-full border-2 border-slate-900 bg-white px-3 py-2 font-mono text-sm font-black uppercase"
+                  >
+                    <option value="staff">Faculty / Lab Staff</option>
+                    <option value="admin">Administrator</option>
+                    <option value="student">Student</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block font-mono text-[10px] font-black uppercase">
+                    Department
+                  </label>
+                  <select
+                    value={provisionForm.departmentId}
+                    onChange={(e) =>
+                      setProvisionForm((p) => ({ ...p, departmentId: e.target.value }))
+                    }
+                    className="w-full border-2 border-slate-900 bg-white px-3 py-2 text-sm"
+                  >
+                    <option value="">None</option>
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.code} — {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block font-mono text-[10px] font-black uppercase">
+                    Initial Password (min 8 chars) *
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    minLength={8}
+                    value={provisionForm.password}
+                    onChange={(e) => setProvisionForm((p) => ({ ...p, password: e.target.value }))}
+                    placeholder="Minimum 8 characters"
+                    className="w-full border-2 border-slate-900 bg-white px-3 py-2 text-sm"
+                  />
+                </div>
+                {provisionForm.role === "staff" && labs.length > 0 && (
+                  <div className="sm:col-span-2 lg:col-span-3">
+                    <span className="mb-1.5 block font-mono text-[10px] font-black uppercase">
+                      Assign Laboratories (Optional)
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {labs.map((l) => {
+                        const checked = provisionForm.assignedLabIds.includes(l.id);
+                        return (
+                          <label
+                            key={l.id}
+                            className="inline-flex cursor-pointer items-center gap-1.5 border-2 border-slate-900 bg-slate-50 px-2.5 py-1 font-mono text-[11px] font-bold"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) =>
+                                setProvisionForm((p) => ({
+                                  ...p,
+                                  assignedLabIds: e.target.checked
+                                    ? [...p.assignedLabIds, l.id]
+                                    : p.assignedLabIds.filter((id) => id !== l.id),
+                                }))
+                              }
+                            />
+                            {l.code} — {l.name}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                <div className="flex items-end sm:col-span-2 lg:col-span-3">
+                  <ActionButton type="submit" variant="primary" size="md" disabled={saving}>
+                    {saving ? "Provisioning..." : "Create Account"}
+                  </ActionButton>
+                </div>
+              </form>
+            </BrutalCard>
+          )}
+
+          <BrutalCard className="overflow-x-auto">
           <table className="w-full border-collapse text-left text-xs">
             <thead>
               <tr className="border-b-2 border-slate-900 bg-slate-100 font-mono text-[10px] font-black uppercase">
@@ -298,6 +493,7 @@ export function AdminClient({
             </tbody>
           </table>
         </BrutalCard>
+        </div>
       )}
 
       {/* LABS TAB */}

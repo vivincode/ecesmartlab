@@ -108,7 +108,7 @@ const WORKFLOW_STEPS = [
 const FAQS = [
   {
     q: "Who can borrow hardware through SmartLab?",
-    a: "Registered students, project teams, and faculty across connected engineering departments. Staff accounts require an administrator-issued invitation code during registration.",
+    a: "Registered students and project teams across connected engineering departments. Faculty and laboratory staff access is provisioned internally by your institution administrator.",
   },
   {
     q: "How does SmartLab prevent double-booking and negative stock?",
@@ -233,7 +233,7 @@ export function LandingPage({ stats }: { stats: LandingStats }) {
             <div className="mt-8 flex flex-wrap items-center gap-3.5">
               <Link href="/register">
                 <ActionButton variant="primary" size="lg">
-                  Create Student / Staff Account
+                  Create Student Account
                   <ArrowRight className="h-4 w-4" />
                 </ActionButton>
               </Link>
@@ -591,9 +591,6 @@ export function LandingPage({ stats }: { stats: LandingStats }) {
             </span>
           </div>
           <div className="flex flex-wrap items-center gap-4 font-mono text-xs font-bold uppercase">
-            <Link href="/setup" className="text-slate-600 hover:text-sky-700">
-              Setup Guide
-            </Link>
             <Link href="/login" className="text-slate-600 hover:text-sky-700">
               Sign In
             </Link>

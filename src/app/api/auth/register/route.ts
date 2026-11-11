@@ -24,6 +24,22 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json().catch(() => null);
+  if (
+    body &&
+    typeof body === "object" &&
+    "role" in body &&
+    body.role !== undefined &&
+    body.role !== "student"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Public registration is restricted to student accounts. Faculty and admin accounts are provisioned internally.",
+      },
+      { status: 403 }
+    );
+  }
+
   const parsed = registerSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
@@ -71,25 +87,6 @@ export async function POST(request: NextRequest) {
       },
       { status: 409 }
     );
-  }
-
-  // Verify staff invite code against institutional_settings when registering as staff
-  if (data.role === "staff") {
-    const { data: settings } = await admin
-      .from("institutional_settings")
-      .select("staff_invite_code")
-      .limit(1)
-      .maybeSingle();
-
-    const expectedCode =
-      settings?.staff_invite_code || process.env.INITIAL_STAFF_INVITE_CODE || "";
-
-    if (!expectedCode || data.staffInviteCode !== expectedCode) {
-      return NextResponse.json(
-        { error: "Invalid staff invitation code. Contact your institution administrator." },
-        { status: 403 }
-      );
-    }
   }
 
   const origin =
@@ -143,17 +140,17 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Assign role and department metadata on profiles (auth email_confirmed_at stays NULL until user verifies email)
+  // Public registration always assigns 'student' role; faculty/admin roles are granted only via /admin
   const { data: roleRow } = await admin
     .from("roles")
     .select("id")
-    .eq("name", data.role)
+    .eq("name", "student")
     .maybeSingle();
 
   await admin
     .from("profiles")
     .update({
-      role: data.role,
+      role: "student",
       role_id: roleRow?.id ?? null,
       full_name: data.fullName,
       academic_id: academicId,
@@ -166,7 +163,7 @@ export async function POST(request: NextRequest) {
     action: "user_registered_pending_verification",
     entityType: "profile",
     entityId: signUpData.user.id,
-    summary: `Registered ${data.role} account (${academicId}) awaiting email verification`,
+    summary: `Registered student account (${academicId}) awaiting email verification`,
     ipAddress: ip,
   });
 
@@ -180,7 +177,7 @@ export async function POST(request: NextRequest) {
       user: {
         id: signUpData.user.id,
         email,
-        role: data.role,
+        role: "student",
         academic_id: academicId,
         emailConfirmed,
       },

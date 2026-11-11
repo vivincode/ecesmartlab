@@ -100,10 +100,10 @@ function LoginForm() {
             Back to SmartLab
           </Link>
           <Link
-            href="/setup"
-            className="font-mono text-[11px] font-bold text-slate-500 uppercase hover:text-sky-700"
+            href="/register"
+            className="font-mono text-[11px] font-bold text-sky-700 uppercase hover:underline"
           >
-            Setup Check
+            Student Sign Up
           </Link>
         </div>
 
@@ -158,7 +158,7 @@ function LoginForm() {
                   autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="student@college.edu"
+                  placeholder="name@college.edu"
                   className="w-full border-2 border-slate-900 bg-white py-2.5 pr-3 pl-9 text-sm font-medium focus:border-sky-700 focus:outline-none"
                 />
               </div>
