@@ -2,14 +2,19 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ArrowLeft, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ActionButton, BrutalCard, MonoLabel } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/toast";
 
-export function AdminLoginView() {
-  const router = useRouter();
+interface AdminLoginViewProps {
+  currentSession?: {
+    email: string;
+    role: string;
+  } | null;
+}
+
+export function AdminLoginView({ currentSession }: AdminLoginViewProps) {
   const { toast } = useToast();
 
   const [email, setEmail] = useState("");
@@ -17,6 +22,12 @@ export function AdminLoginView() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  async function handleSignOutCurrent() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    window.location.assign("/admin");
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -47,7 +58,7 @@ export function AdminLoginView() {
       }
 
       toast("Administrator authenticated", "success");
-      router.refresh();
+      window.location.assign("/admin");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to sign in");
       setLoading(false);
@@ -84,6 +95,33 @@ export function AdminLoginView() {
               </h1>
             </div>
           </div>
+
+          {currentSession && (
+            <div className="mt-4 border-2 border-amber-600 bg-amber-50 p-3 font-mono text-xs text-amber-950">
+              <div className="font-black uppercase">
+                Active {currentSession.role} session ({currentSession.email})
+              </div>
+              <p className="mt-1 text-[11px] leading-relaxed">
+                This route is reserved for administrators. Sign in below with an administrator
+                account to switch sessions, or return to your portal.
+              </p>
+              <div className="mt-2.5 flex flex-wrap gap-3">
+                <Link
+                  href="/dashboard"
+                  className="font-black text-sky-800 uppercase underline hover:text-sky-950"
+                >
+                  Go to Dashboard
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleSignOutCurrent}
+                  className="cursor-pointer font-black text-rose-700 uppercase underline hover:text-rose-900"
+                >
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="mt-5 space-y-4">
             <div>

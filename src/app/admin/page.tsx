@@ -40,7 +40,14 @@ export default async function AdminPage() {
   }
 
   if (profile.role !== "admin") {
-    redirect("/dashboard");
+    return (
+      <AdminLoginView
+        currentSession={{
+          email: profile.email,
+          role: profile.role,
+        }}
+      />
+    );
   }
 
   const admin = createAdminSupabase();
