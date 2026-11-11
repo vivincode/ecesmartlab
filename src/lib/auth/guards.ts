@@ -17,7 +17,7 @@ export async function getAuthContext(): Promise<AuthContext | null> {
     error: authError,
   } = await supabase.auth.getUser();
 
-  if (authError || !user) return null;
+  if (authError || !user || !user.email_confirmed_at) return null;
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
@@ -42,6 +42,27 @@ export async function requireRole(
       errorResponse: NextResponse.json(
         { error: "Supabase backend is not configured yet. See .env.example and README.md." },
         { status: 503 }
+      ),
+    };
+  }
+
+  const supabase = await createServerSupabase();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return {
+      errorResponse: NextResponse.json({ error: "Authentication required" }, { status: 401 }),
+    };
+  }
+
+  if (!user.email_confirmed_at) {
+    return {
+      errorResponse: NextResponse.json(
+        { error: "Email verification required. Please check your inbox and verify your email address." },
+        { status: 403 }
       ),
     };
   }

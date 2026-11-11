@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, AlertTriangle, Eye, EyeOff, Lock, Mail } from "lucide-react";
+import { ArrowLeft, AlertTriangle, CheckCircle2, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ActionButton, BrutalCard, MonoLabel } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/toast";
@@ -12,13 +12,16 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "/dashboard";
+  const checkVerificationParam = searchParams.get("check_verification");
   const { toast } = useToast();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const [error, setError] = useState("");
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState("");
   const [configured, setConfigured] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -31,6 +34,7 @@ function LoginForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setUnconfirmedEmail("");
     if (configured === false) {
       setError("Supabase credentials are not configured yet. Visit /setup to connect your database.");
       return;
@@ -45,7 +49,12 @@ function LoginForm() {
       });
 
       if (signInErr) {
-        setError(signInErr.message);
+        if (signInErr.message.toLowerCase().includes("email not confirmed")) {
+          setUnconfirmedEmail(email.trim());
+          setError("Your email address is not verified yet. Please confirm your email before signing in.");
+        } else {
+          setError(signInErr.message);
+        }
         setLoading(false);
         return;
       }
@@ -56,6 +65,26 @@ function LoginForm() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to sign in");
       setLoading(false);
+    }
+  }
+
+  async function handleResendFromLogin() {
+    if (!unconfirmedEmail) return;
+    setResending(true);
+    try {
+      const res = await fetch("/api/auth/resend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: unconfirmedEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast(data.error || "Could not resend verification email", "error");
+        return;
+      }
+      toast("Verification email sent! Check your inbox.", "success");
+    } finally {
+      setResending(false);
     }
   }
 
@@ -90,6 +119,15 @@ function LoginForm() {
               </h1>
             </div>
           </div>
+
+          {checkVerificationParam && (
+            <div className="mt-4 flex items-start gap-2 border-2 border-sky-700 bg-sky-50 p-3 text-xs font-bold text-sky-950">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-sky-700" />
+              <span>
+                Sign in with your email and password to complete verification and access SmartLab.
+              </span>
+            </div>
+          )}
 
           {configured === false && (
             <div className="mt-4 border-2 border-amber-700 bg-amber-50 p-3 text-xs font-bold text-amber-950">
@@ -161,7 +199,25 @@ function LoginForm() {
                 role="alert"
                 className="border-2 border-rose-700 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-900"
               >
-                {error}
+                <p>{error}</p>
+                {unconfirmedEmail && (
+                  <div className="mt-2 flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleResendFromLogin}
+                      disabled={resending}
+                      className="cursor-pointer border border-rose-800 bg-white px-2.5 py-1 font-mono text-[10px] font-black text-rose-900 uppercase hover:bg-rose-100 disabled:opacity-50"
+                    >
+                      {resending ? "Sending..." : "Resend Verification Email"}
+                    </button>
+                    <Link
+                      href={`/verify-email?email=${encodeURIComponent(unconfirmedEmail)}`}
+                      className="font-mono text-[10px] font-black text-rose-900 uppercase underline"
+                    >
+                      Open Verification Page →
+                    </Link>
+                  </div>
+                )}
               </div>
             )}
 

@@ -24,6 +24,10 @@ export default async function ProtectedLayout({
     redirect("/login");
   }
 
+  if (!user.email_confirmed_at) {
+    redirect(user.email ? `/verify-email?email=${encodeURIComponent(user.email)}` : "/verify-email");
+  }
+
   const [profileRes, labsRes, notifRes] = await Promise.all([
     supabase
       .from("profiles")

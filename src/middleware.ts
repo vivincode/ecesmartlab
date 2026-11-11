@@ -59,7 +59,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (user && (pathname === "/login" || pathname === "/register")) {
+  if (isProtected && user && !user.email_confirmed_at) {
+    const verifyUrl = new URL("/verify-email", request.url);
+    if (user.email) verifyUrl.searchParams.set("email", user.email);
+    return NextResponse.redirect(verifyUrl);
+  }
+
+  if (user && user.email_confirmed_at && (pathname === "/login" || pathname === "/register")) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

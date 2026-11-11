@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, KeyRound, ShieldAlert } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { ActionButton, BrutalCard, MonoLabel } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/toast";
 import type { Department } from "@/types/database";
@@ -25,6 +24,7 @@ export default function RegisterPage() {
   const [configured, setConfigured] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [needsVerificationEmail, setNeedsVerificationEmail] = useState("");
 
   useEffect(() => {
     fetch("/api/meta")
@@ -65,20 +65,16 @@ export default function RegisterPage() {
       const payload = await res.json();
       if (!res.ok) {
         setError(payload.error || "Registration failed");
+        if (payload.needsVerification) {
+          setNeedsVerificationEmail(payload.email || email.trim());
+        }
         setLoading(false);
         return;
       }
 
-      // Sign in immediately via Supabase Auth
-      const supabase = createClient();
-      const { error: signInErr } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
-
-      if (signInErr) {
-        toast("Account created! Please sign in.", "success");
-        router.push("/login");
+      if (payload.requiresEmailVerification !== false) {
+        toast("Account created! Verify your email to activate access.", "success");
+        router.push(`/verify-email?email=${encodeURIComponent(payload.email || email.trim())}`);
         return;
       }
 
@@ -257,7 +253,17 @@ export default function RegisterPage() {
                 className="flex items-start gap-2 border-2 border-rose-700 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-900"
               >
                 <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>{error}</span>
+                <div>
+                  <span>{error}</span>
+                  {needsVerificationEmail && (
+                    <Link
+                      href={`/verify-email?email=${encodeURIComponent(needsVerificationEmail)}`}
+                      className="mt-1 block font-mono text-[11px] underline"
+                    >
+                      Resend verification email →
+                    </Link>
+                  )}
+                </div>
               </div>
             )}
 
