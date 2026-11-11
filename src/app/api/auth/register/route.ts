@@ -5,6 +5,11 @@ import { isServiceRoleConfigured, isSupabaseConfigured } from "@/lib/supabase/co
 import { registerSchema } from "@/lib/validators/schemas";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { logAuditEvent } from "@/lib/auth/guards";
+import {
+  buildVerificationEmailHtml,
+  isCustomEmailConfigured,
+  sendEmailNotification,
+} from "@/lib/notifications/email";
 
 export async function POST(request: NextRequest) {
   if (!isSupabaseConfigured() || !isServiceRoleConfigured()) {
@@ -15,10 +20,11 @@ export async function POST(request: NextRequest) {
   }
 
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  const rl = checkRateLimit(`register:${ip}`, 8, 60_000);
-  if (!rl.allowed) {
+  // Generous per-IP cap so shared campus Wi-Fi NAT does not block simultaneous student registrations
+  const ipRl = checkRateLimit(`register:${ip}`, 120, 60_000);
+  if (!ipRl.allowed) {
     return NextResponse.json(
-      { error: `Too many registration attempts. Retry in ${rl.retryAfterSeconds}s.` },
+      { error: `Too many registration attempts. Retry in ${ipRl.retryAfterSeconds}s.` },
       { status: 429 }
     );
   }
@@ -50,6 +56,13 @@ export async function POST(request: NextRequest) {
 
   const data = parsed.data;
   const email = data.email.trim().toLowerCase();
+  const emailRl = checkRateLimit(`register-email:${email}`, 5, 60_000);
+  if (!emailRl.allowed) {
+    return NextResponse.json(
+      { error: `Too many attempts for this email. Retry in ${emailRl.retryAfterSeconds}s.` },
+      { status: 429 }
+    );
+  }
   const academicId = data.academicId.toUpperCase();
   const admin = createAdminSupabase();
 
@@ -93,51 +106,114 @@ export async function POST(request: NextRequest) {
     request.nextUrl.origin && !request.nextUrl.origin.includes("0.0.0.0")
       ? request.nextUrl.origin
       : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  const emailRedirectTo = `${origin.replace(/\/$/, "")}/auth/callback?next=/dashboard`;
+  const cleanOrigin = origin.replace(/\/$/, "");
+  const emailRedirectTo = `${cleanOrigin}/auth/callback?next=/dashboard`;
 
   const cookiesToApply: { name: string; value: string; options: CookieOptions }[] = [];
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
-          cookiesToApply.push(...cookiesToSet);
+  let createdUser: { id: string; email_confirmed_at?: string | null } | null = null;
+
+  if (isCustomEmailConfigured()) {
+    // Custom SMTP / Resend path: creates the user with email_confirmed_at = NULL without
+    // hitting Supabase's built-in 2 emails/hour cap, then sends the branded verification link.
+    const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+      type: "signup",
+      email,
+      password: data.password,
+      options: {
+        redirectTo: emailRedirectTo,
+        data: {
+          full_name: data.fullName,
+          academic_id: academicId,
         },
       },
+    });
+
+    if (linkError || !linkData?.user || !linkData.properties?.hashed_token) {
+      return NextResponse.json(
+        { error: linkError?.message || "Unable to generate verification link." },
+        { status: 400 }
+      );
     }
-  );
 
-  // Use standard Supabase signUp() so email confirmation is enforced and email_confirmed_at remains NULL until clicked
-  const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-    email,
-    password: data.password,
-    options: {
-      emailRedirectTo,
-      data: {
-        full_name: data.fullName,
-        academic_id: academicId,
-      },
-    },
-  });
+    const verificationUrl = `${cleanOrigin}/auth/callback?token_hash=${encodeURIComponent(
+      linkData.properties.hashed_token
+    )}&type=signup&next=${encodeURIComponent("/dashboard")}`;
 
-  if (signUpError) {
-    const status = signUpError.status === 429 ? 429 : 400;
-    return NextResponse.json({ error: signUpError.message }, { status });
-  }
-
-  if (!signUpData.user || (Array.isArray(signUpData.user.identities) && signUpData.user.identities.length === 0)) {
-    return NextResponse.json(
-      {
-        error: "An account with this email already exists. Please sign in or resend verification.",
-        needsVerification: true,
+    const mailRes = await sendEmailNotification({
+      to: email,
+      subject: "Verify your PSG iTech SmartLab email address",
+      html: buildVerificationEmailHtml({
+        recipientName: data.fullName,
+        verificationUrl,
         email,
-      },
-      { status: 409 }
+      }),
+    });
+
+    if (!mailRes.sent) {
+      await admin.auth.admin.deleteUser(linkData.user.id).catch(() => {});
+      return NextResponse.json(
+        {
+          error: `Verification email delivery failed (${mailRes.reason || "mailer error"}). Please verify SMTP/Resend configuration.`,
+        },
+        { status: 502 }
+      );
+    }
+
+    createdUser = linkData.user;
+  } else {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
+            cookiesToApply.push(...cookiesToSet);
+          },
+        },
+      }
     );
+
+    // Standard Supabase signUp() enforces email_confirmed_at NULL until confirmation link is clicked
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      email,
+      password: data.password,
+      options: {
+        emailRedirectTo,
+        data: {
+          full_name: data.fullName,
+          academic_id: academicId,
+        },
+      },
+    });
+
+    if (signUpError) {
+      const status = signUpError.status === 429 ? 429 : 400;
+      const message =
+        status === 429
+          ? `${signUpError.message}. Configure SMTP_* or RESEND_API_KEY in .env.local (or Custom SMTP in Supabase) for unlimited verification emails.`
+          : signUpError.message;
+      return NextResponse.json({ error: message }, { status });
+    }
+
+    if (
+      !signUpData.user ||
+      (Array.isArray(signUpData.user.identities) && signUpData.user.identities.length === 0)
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "An account with this email already exists. Please sign in or resend verification.",
+          needsVerification: true,
+          email,
+        },
+        { status: 409 }
+      );
+    }
+
+    createdUser = signUpData.user;
   }
 
   // Public registration always assigns 'student' role; faculty/admin roles are granted only via /admin
@@ -156,18 +232,18 @@ export async function POST(request: NextRequest) {
       academic_id: academicId,
       department_id: data.departmentId || null,
     })
-    .eq("id", signUpData.user.id);
+    .eq("id", createdUser.id);
 
   await logAuditEvent({
-    actorId: signUpData.user.id,
+    actorId: createdUser.id,
     action: "user_registered_pending_verification",
     entityType: "profile",
-    entityId: signUpData.user.id,
+    entityId: createdUser.id,
     summary: `Registered student account (${academicId}) awaiting email verification`,
     ipAddress: ip,
   });
 
-  const emailConfirmed = Boolean(signUpData.user.email_confirmed_at);
+  const emailConfirmed = Boolean(createdUser.email_confirmed_at);
   const res = NextResponse.json(
     {
       ok: true,
@@ -175,7 +251,7 @@ export async function POST(request: NextRequest) {
       email,
       emailRedirectTo,
       user: {
-        id: signUpData.user.id,
+        id: createdUser.id,
         email,
         role: "student",
         academic_id: academicId,
